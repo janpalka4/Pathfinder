@@ -1,0 +1,25 @@
+﻿@page "/"
+@using Pathfinder.Logic.Tools
+
+<div style="height: 100%;">
+    <MudPaper>
+        <MudToolBar>
+            <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" OnClick="@(() => _playground?.Run())" />
+            <ToolButton T="StartMarkTool" Icon="@Icons.Custom.Uncategorized.ChessPawn" OnClick="@OnToolToggle"/>
+            <ToolButton T="EndMarkTool" Icon="@Icons.Material.Filled.Flag" OnClick="@OnToolToggle" />
+            <ToolButton T="WallMarkTool" Icon="@Icons.Custom.Uncategorized.ChessKnight" OnClick="@OnToolToggle" />
+        </MudToolBar>
+    </MudPaper>
+
+    @* <Grid @ref="grid"/> *@
+    <Playground @ref="_playground" />
+</div>
+
+@code {
+    private Playground _playground;
+
+    private void OnToolToggle()
+    {
+        StateHasChanged();
+    }
+}

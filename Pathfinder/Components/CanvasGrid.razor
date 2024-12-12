@@ -1,0 +1,202 @@
+﻿@using Blazor.Extensions
+@using Blazor.Extensions.Canvas.Canvas2D
+@using Pathfinder.Logic.Tools
+@using Pathfinder.Model
+@using Pathfinder.Services
+@using System.Numerics
+
+@inject MeasurementService MeasurementService
+
+<div @ref="div" style="position: relative; width: 100%; height: 100%;" @onmousemove="@OnMouseMove" @onmousedown="@(() => mouseDown = true)" @onmouseup="@(() => mouseDown = false)" @onmouseleave="@(() => mouseDown = false)">
+    <BECanvas Width="@((int)clientRect.Width)" Height="@((int)clientRect.Height)" @ref="_canvasReference"></BECanvas>
+</div>
+
+@code {
+    public Dictionary<Vector2, GridTile> Tiles = new Dictionary<Vector2, GridTile>();
+    public Vector2 Size = new Vector2(0, 0);
+
+    private Canvas2DContext _context;
+    private BoundingClientRect clientRect = new BoundingClientRect() { Width = 100, Height = 100 };
+    private ElementReference div;
+
+    private Vector3 Gray = new Vector3(128, 128, 128);
+
+    private Vector2? HoveredTile;
+    private bool mouseDown = false;
+
+    protected BECanvasComponent _canvasReference;
+
+    private async Task InitializeCanvas()
+    {
+        clientRect = await MeasurementService.GetBoundingClientRect(div);
+        StateHasChanged();
+
+        for (int x = 0; x < clientRect.Width; x += 32)
+        {
+            for (int y = 0; y < clientRect.Height; y += 32)
+            {
+                Vector2 position = new Vector2(x, y) / 32f;
+                GridTile tile = new GridTile(position);
+
+                tile.OnTileChanged += async (s, e) => await RedrawTile(e, e);
+
+                Tiles.Add(position, tile);
+            }
+        }
+
+        Size = new Vector2((int)(clientRect.Width / 32), (int)(clientRect.Height / 32));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            this._context = await this._canvasReference.CreateCanvas2DAsync();
+            await InitializeCanvas();
+            await Draw();
+        }
+    }
+
+    private async Task Draw()
+    {
+        await this._context.ClearRectAsync(0, 0, clientRect.Width, clientRect.Height);
+
+        await DrawGrid();
+        await DrawHoveredTile();
+    }
+
+    private async Task DrawGrid()
+    {
+        //Console.WriteLine("Drawing Grid");
+        await this._context.SetStrokeStyleAsync(GetColor(Gray));
+
+        for (int i = 0; i < clientRect.Width; i += 32)
+        {
+            await this._context.BeginPathAsync();
+            await this._context.MoveToAsync(i, 0);
+            await this._context.LineToAsync(i, clientRect.Height);
+            await this._context.StrokeAsync();
+        }
+        for (int i = 0; i < clientRect.Height; i += 32)
+        {
+            await this._context.BeginPathAsync();
+            await this._context.MoveToAsync(0, i);
+            await this._context.LineToAsync(clientRect.Width, i);
+            await this._context.StrokeAsync();
+        }
+    }
+
+    private async Task DrawHoveredTile()
+    {
+        //Console.WriteLine($"Drawing Hovered Tile: {HoveredTile}");
+        if (HoveredTile.HasValue)
+        {
+            await this._context.SetFillStyleAsync(GetColor(Gray, .5f));
+            await this._context.FillRectAsync(HoveredTile.Value.X * 32, HoveredTile.Value.Y * 32, 32, 32);
+        }
+        //Console.WriteLine("Done Drawing Hovered Tile");
+    }
+
+    private async Task DrawEmptyTile(Vector2 tile)
+    {
+        //Console.WriteLine($"Drawing Empty Tile: {tile}");
+        if (!Tiles.ContainsKey(tile))
+            return;
+
+        Vector4 c = Tiles[tile].GetColor();
+
+        if (tile == HoveredTile)
+            return;
+
+        for (float f = 0; f <= 0.5f; f += 0.05f)
+        {
+            //Redraw the tile with a lower alpha value
+            float a = (0.5f - f);
+            if (c.W == 0)
+            {
+                await this._context.ClearRectAsync(tile.X * 32, tile.Y * 32, 32, 32);
+            }
+            else
+            {
+                await this._context.SetFillStyleAsync(GetColor(c));
+                await this._context.FillRectAsync(tile.X * 32, tile.Y * 32, 32, 32);
+            }
+
+            await this._context.SetFillStyleAsync(GetColor(Gray, a));
+            await this._context.FillRectAsync(tile.X * 32, tile.Y * 32, 32, 32);
+
+            await this._context.SetStrokeStyleAsync(GetColor(Gray));
+            await this._context.StrokeRectAsync(tile.X * 32, tile.Y * 32, 32, 32);
+
+            await Task.Delay(10);
+        }
+
+        c = Tiles[tile].GetColor();
+
+        //Clear the tile
+        await this._context.ClearRectAsync(tile.X * 32, tile.Y * 32, 32, 32);
+
+        await this._context.SetFillStyleAsync(GetColor(c));
+        await this._context.FillRectAsync(tile.X * 32, tile.Y * 32, 32, 32);
+
+        await this._context.SetStrokeStyleAsync(GetColor(Gray));
+        await this._context.StrokeRectAsync(tile.X * 32, tile.Y * 32, 32, 32);
+
+    }
+
+    private async Task HandleHoverHighlight(MouseEventArgs e)
+    {
+        Vector2? previous = HoveredTile;
+        HoveredTile = new Vector2((int)(e.OffsetX / 32), (int)(e.OffsetY / 32));
+
+        if (previous.HasValue)
+            DrawEmptyTile(previous.Value);
+
+        await DrawHoveredTile();
+    }
+
+    private void HandleTool()
+    {
+        if (HoveredTile.HasValue && Tiles.ContainsKey(HoveredTile.Value) && mouseDown)
+        {
+            Toolbox.UseTool(Tiles[HoveredTile.Value]);
+        }
+    }
+
+    private async Task OnMouseMove(MouseEventArgs e)
+    {
+        //Console.WriteLine($"Mouse Over: {e.OffsetX}, {e.OffsetY}");
+        await HandleHoverHighlight(e);
+
+        HandleTool();
+    }
+
+    private async Task RedrawTile(object sender, GridTile e)
+    {
+        Vector4 c = e.GetColor();
+
+        if (c.W == 0)
+        {
+            await this._context.ClearRectAsync(e.Position.X * 32, e.Position.Y * 32, 32, 32);
+        }
+        else
+        {
+            await this._context.SetFillStyleAsync(GetColor(new Vector3(c.X, c.Y, c.Z), c.W));
+            await this._context.FillRectAsync(e.Position.X * 32, e.Position.Y * 32, 32, 32);
+        }
+
+        await this._context.SetStrokeStyleAsync(GetColor(Gray));
+        await this._context.StrokeRectAsync(e.Position.X * 32, e.Position.Y * 32, 32, 32);
+    }
+
+    private string GetColor(Vector3 rgb, float a = 1)
+    {
+        return GetColor(new Vector4(rgb.X, rgb.Y, rgb.Z, a));
+    }
+
+    private string GetColor(Vector4 rgba)
+    {
+        string alphaString = rgba.W.ToString("0.00");
+        return $"rgba({(int)rgba.X}, {(int)rgba.Y}, {(int)rgba.Z}, {alphaString})";
+    }
+}
