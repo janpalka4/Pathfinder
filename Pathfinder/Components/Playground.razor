@@ -7,10 +7,12 @@
     private CanvasGrid _canvasGrid;
     private CancellationTokenSource? _cancellationTokenSource;
 
-    public void Run()
+    public async void Run()
     {
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource = new CancellationTokenSource();
+
+        //await _canvasGrid.Clear();
 
         bool[][] walls = new bool[(int)_canvasGrid.Size.X][];
         Vector2 start = new Vector2(0, 0);
@@ -41,22 +43,22 @@
             }
         }
 
-        AStarAlgorithm aStar = new AStarAlgorithm((int)_canvasGrid.Size.X,(int)_canvasGrid.Size.Y,walls);
+        DijkstrasAlgorithm dijkstras = new DijkstrasAlgorithm((int)_canvasGrid.Size.X,(int)_canvasGrid.Size.Y,walls);
 
-        aStar.TileVisited += (s, e) =>
+        dijkstras.TileVisited += (s, e) =>
         {
             GridTile tile = _canvasGrid.Tiles[new Vector2(e.X, e.Y)];
             if (tile.Type != TileType.PATH && tile.Type != TileType.WALL)
                 tile.Type = TileType.VISITED;
         };
 
-        aStar.TileSelected += (s, e) =>
+        dijkstras.TileSelected += (s, e) =>
         {
             GridTile tile = _canvasGrid.Tiles[new Vector2(e.X, e.Y)];
             if (tile.Type != TileType.START && tile.Type != TileType.END)
                 tile.Type = TileType.PATH;
         };
 
-        Task.Run(() => aStar.Execute((int)start.X, (int)start.Y,(int)end.X,(int)end.Y,_cancellationTokenSource.Token));
+        Task.Run(() => dijkstras.Execute((int)start.X, (int)start.Y, (int)end.X, (int)end.Y, _cancellationTokenSource.Token));
     }
 }

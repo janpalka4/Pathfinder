@@ -26,6 +26,12 @@
 
     protected BECanvasComponent _canvasReference;
 
+    public async Task Clear() 
+    {
+        Tiles.Clear();
+        await InitializeCanvas();
+    }
+
     private async Task InitializeCanvas()
     {
         clientRect = await MeasurementService.GetBoundingClientRect(div);
@@ -181,6 +187,8 @@
         }
         else
         {
+            //c = new Vector4(Random.Shared.Next(0, 255), Random.Shared.Next(0, 255), Random.Shared.Next(0, 255), 1);
+
             await this._context.SetFillStyleAsync(GetColor(new Vector3(c.X, c.Y, c.Z), c.W));
             await this._context.FillRectAsync(e.Position.X * 32, e.Position.Y * 32, 32, 32);
         }
