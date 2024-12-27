@@ -29,9 +29,9 @@
             TileSelected?.Invoke(this, new TileEventArgs { X = x, Y = y });
         }
 
-        protected async Task Delay()
+        protected async Task Delay(float mult = 1f)
         {
-            await Task.Delay(10);
+            await Task.Delay((int)(10 * mult));
         }
     }
 

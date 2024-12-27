@@ -1,7 +1,7 @@
 ﻿@using Pathfinder.Logic.Algorithms
 @using System.Numerics
 @using Pathfinder.Model
-<CanvasGrid @ref="_canvasGrid"/>
+<CanvasGrid @ref="_canvasGrid" />
 
 @code {
     private CanvasGrid _canvasGrid;
@@ -12,7 +12,7 @@
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource = new CancellationTokenSource();
 
-        //await _canvasGrid.Clear();
+        await _canvasGrid.ClearVisualization();
 
         bool[][] walls = new bool[(int)_canvasGrid.Size.X][];
         Vector2 start = new Vector2(0, 0);
@@ -31,8 +31,8 @@
 
                 GridTile tile = _canvasGrid.Tiles[new Vector2(i, j)];
                 walls[i][j] = tile.Type == TileType.WALL;
-                
-                if(tile.Type == TileType.START)
+
+                if (tile.Type == TileType.START)
                 {
                     start = new Vector2(i, j);
                 }
@@ -43,7 +43,7 @@
             }
         }
 
-        DijkstrasAlgorithm dijkstras = new DijkstrasAlgorithm((int)_canvasGrid.Size.X,(int)_canvasGrid.Size.Y,walls);
+        DijkstrasAlgorithm dijkstras = new DijkstrasAlgorithm((int)_canvasGrid.Size.X, (int)_canvasGrid.Size.Y, walls);
 
         dijkstras.TileVisited += (s, e) =>
         {
@@ -60,5 +60,17 @@
         };
 
         Task.Run(() => dijkstras.Execute((int)start.X, (int)start.Y, (int)end.X, (int)end.Y, _cancellationTokenSource.Token));
+    }
+
+    public void Stop()
+    {
+        _cancellationTokenSource?.Cancel();
+    }
+
+    public async void CeateMaze()
+    {
+        Stop();
+
+        await _canvasGrid.CreateMaze();
     }
 }

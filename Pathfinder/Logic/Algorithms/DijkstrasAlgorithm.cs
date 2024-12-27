@@ -39,7 +39,7 @@ namespace Pathfinder.Logic.Algorithms
 
                     next.AddRange(ComputeTile(node));
 
-                    await Delay();
+                    await Delay(0.25f);
                 }
 
                 foreach(DijkstrasNode node in next)

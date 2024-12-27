@@ -4,10 +4,12 @@
 <div style="height: 100%;">
     <MudPaper>
         <MudToolBar>
-            <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" OnClick="@(() => _playground?.Run())" />
+            <ToggleButton IconA="@Icons.Material.Filled.PlayArrow" IconB="@Icons.Material.Filled.Pause" OnA="@(() => _playground.Run())" OnB="@(() => _playground.Stop())"/>
             <ToolButton T="StartMarkTool" Icon="@Icons.Custom.Uncategorized.ChessPawn" OnClick="@OnToolToggle"/>
             <ToolButton T="EndMarkTool" Icon="@Icons.Material.Filled.Flag" OnClick="@OnToolToggle" />
-            <ToolButton T="WallMarkTool" Icon="@Icons.Custom.Uncategorized.ChessKnight" OnClick="@OnToolToggle" />
+            <ToolButton T="WallMarkTool" Icon="@Icons.Material.Filled.Construction" OnClick="@OnToolToggle" />
+            <MudIconButton Icon="@Icons.Material.Outlined.Pattern" OnClick="@(() => _playground.CeateMaze())" />
+            <ToolButton T="ClearMarkTool" Icon="@Icons.Material.Filled.Delete" OnClick="@OnToolToggle" />
         </MudToolBar>
     </MudPaper>
 
