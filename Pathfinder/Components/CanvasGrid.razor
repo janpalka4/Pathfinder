@@ -15,7 +15,14 @@
 </div>
 
 @code {
+    /// <summary>
+    /// Dictionary to store the grid tiles with their positions as keys.
+    /// </summary>
     public Dictionary<Vector2, GridTile> Tiles = new Dictionary<Vector2, GridTile>();
+
+    /// <summary>
+    /// Represents the size of the grid.
+    /// </summary>
     public Vector2 Size = Vector2.Zero;
 
     private Canvas2DContext _context;
@@ -33,6 +40,9 @@
 
     protected BECanvasComponent _canvasReference;
 
+    /// <summary>
+    /// Clears the grid and reinitializes the canvas.
+    /// </summary>
     public async Task Clear()
     {
         Tiles.Clear();
@@ -40,40 +50,55 @@
         await Draw();
     }
 
+    /// <summary>
+    /// Sets the type of a tile at a given position.
+    /// </summary>
+    /// <param name="position">The position of the tile.</param>
+    /// <param name="type">The type to set for the tile.</param>
     public async Task SetTile(Vector2 position, TileType type)
     {
-        if (Tiles.ContainsKey(position))
+        if (Tiles.TryGetValue(position, out var tile))
         {
-            Tiles[position].Type = type;
-            await RedrawTile(Tiles[position]);
+            tile.Type = type;
+            await RedrawTile(tile);
         }
     }
 
+    /// <summary>
+    /// Generates a maze using Kruskal's algorithm and sets the tiles accordingly.
+    /// </summary>
     public async Task CreateMaze()
     {
-        KruskalMazeGenerator kruskalMazeGenerator = new KruskalMazeGenerator();
-        Maze maze = kruskalMazeGenerator.Generate((int)Size.X, (int)Size.Y);
+        var kruskalMazeGenerator = new KruskalMazeGenerator();
+        var maze = kruskalMazeGenerator.Generate((int)Size.X, (int)Size.Y);
 
+        var tasks = new List<Task>();
         for (int x = 0; x < maze.Width; x++)
         {
             for (int y = 0; y < maze.Height; y++)
             {
-                bool isWall = maze.Blocks[x,y];
-                await SetTile(new Vector2(x,y),isWall ? TileType.WALL : TileType.EMPTY);
+                bool isWall = maze.Blocks[x, y];
+                tasks.Add(SetTile(new Vector2(x, y), isWall ? TileType.WALL : TileType.EMPTY));
             }
         }
+        await Task.WhenAll(tasks);
     }
 
+    /// <summary>
+    /// Clears the visualization by resetting visited and path tiles to empty.
+    /// </summary>
     public async Task ClearVisualization()
     {
+        var tasks = new List<Task>();
         foreach (var tile in Tiles.Values)
         {
             if (tile.Type == TileType.VISITED || tile.Type == TileType.PATH)
             {
                 tile.Type = TileType.EMPTY;
-                await RedrawTile(tile);
+                tasks.Add(RedrawTile(tile));
             }
         }
+        await Task.WhenAll(tasks);
     }
 
     private async Task InitializeCanvas()
@@ -139,47 +164,47 @@
     private async Task Draw()
     {
         await StopAllAnimations();
-
-        await this._context.ClearRectAsync(0, 0, clientRect.Width, clientRect.Height);
-
+        await _context.ClearRectAsync(0, 0, clientRect.Width, clientRect.Height);
         await DrawGrid();
 
+        var tasks = new List<Task>();
         for (int x = 0; x < Size.X; x++)
         {
             for (int y = 0; y < Size.Y; y++)
             {
                 Vector2 key = new Vector2(x, y);
-                if (Tiles.ContainsKey(key))
+                if (Tiles.TryGetValue(key, out var tile) && tile.Type != TileType.EMPTY)
                 {
-                    if (Tiles[key].Type != TileType.EMPTY)
-                    {
-                        await RedrawTile(Tiles[key]);
-                    }
+                    tasks.Add(RedrawTile(tile));
                 }
             }
         }
-        // await DrawHoveredTile();
+        await Task.WhenAll(tasks);
     }
 
     private async Task DrawGrid()
     {
         Console.WriteLine("Drawing Grid");
-        await this._context.SetStrokeStyleAsync(GetColor(GridGray));
+        await _context.SetStrokeStyleAsync(GetColor(GridGray));
 
+        var tasks = new List<Task>();
         for (int i = 0; i < clientRect.Width; i += 32)
         {
-            await this._context.BeginPathAsync();
-            await this._context.MoveToAsync(i, 0);
-            await this._context.LineToAsync(i, clientRect.Height);
-            await this._context.StrokeAsync();
+            tasks.Add(DrawGridLine(i, 0, i, (int)clientRect.Height));
         }
         for (int i = 0; i < clientRect.Height; i += 32)
         {
-            await this._context.BeginPathAsync();
-            await this._context.MoveToAsync(0, i);
-            await this._context.LineToAsync(clientRect.Width, i);
-            await this._context.StrokeAsync();
+            tasks.Add(DrawGridLine(0, i, (int)clientRect.Width, i));
         }
+        await Task.WhenAll(tasks);
+    }
+
+    private async Task DrawGridLine(int x1, int y1, int x2, int y2)
+    {
+        await _context.BeginPathAsync();
+        await _context.MoveToAsync(x1, y1);
+        await _context.LineToAsync(x2, y2);
+        await _context.StrokeAsync();
     }
 
     private async Task DrawHoveredTile()
