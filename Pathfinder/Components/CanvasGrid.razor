@@ -6,6 +6,7 @@
 @using Pathfinder.Model.UI
 @using Pathfinder.Services
 @using System.Numerics
+@using System.Globalization
 
 @inject MeasurementService MeasurementService
 @inject IJSRuntime JSRuntime
@@ -108,17 +109,24 @@
         maxSize = Size;
         StateHasChanged();
 
+        this._context = await this._canvasReference.CreateCanvas2DAsync();
+
+        //Console.WriteLine(GetColor(Constants.COLOR_PATH));
+
+        // await _context.SetFillStyleAsync(GetColor(Constants.COLOR_PATH));
+        // await _context.FillRectAsync(0, 0, clientRect.Width, clientRect.Height);
+
         for (int x = 0; x < clientRect.Width; x += 32)
-        {
-            for (int y = 0; y < clientRect.Height; y += 32)
             {
+            for (int y = 0; y < clientRect.Height; y += 32)
+                {
                 Vector2 position = new Vector2(x, y) / 32f;
                 GridTile tile = Tiles?.GetValueOrDefault(position) ?? new GridTile(position);
 
                 tile.OnTileChanged += async (s, e) => await OnRedrawTile(e, e);
 
                 Tiles?.Add(position, tile);
-            }
+        }
         }
     }
 
@@ -126,7 +134,8 @@
     {
         if (firstRender)
         {
-            this._context = await this._canvasReference.CreateCanvas2DAsync();
+            Console.WriteLine("Initializing Canvas");
+
             await JSRuntime.InvokeVoidAsync("window.registerViewportChangeCallback", DotNetObjectReference.Create(this));
             await InitializeCanvas();
         }
@@ -212,7 +221,9 @@
         //Console.WriteLine($"Drawing Hovered Tile: {HoveredTile}");
         if (HoveredTile.HasValue)
         {
+            // Console.WriteLine("Fill");  
             await this._context.SetFillStyleAsync(GetColor(GridGray));
+            // Console.WriteLine("Rect");
             await this._context.FillRectAsync(HoveredTile.Value.X * 32, HoveredTile.Value.Y * 32, 32, 32);
         }
         //Console.WriteLine("Done Drawing Hovered Tile");
@@ -271,7 +282,7 @@
         HoveredTile = new Vector2((int)(e.OffsetX / 32), (int)(e.OffsetY / 32));
 
         if (previous.HasValue)
-            DrawEmptyTile(previous.Value);
+            await DrawEmptyTile(previous.Value);
 
         await DrawHoveredTile();
     }
@@ -322,7 +333,9 @@
             }
         }
 
+        // Console.WriteLine($"stroke");
         await this._context.SetStrokeStyleAsync(GetColor(GridGray));
+        // Console.WriteLine($"rect");
         await this._context.StrokeRectAsync(tile.Position.X * 32, tile.Position.Y * 32, 32, 32);
     }
 
@@ -381,7 +394,7 @@
 
     private string GetColor(Vector4 rgba)
     {
-        string alphaString = rgba.W.ToString("0.00");
+        string alphaString = rgba.W.ToString("0.00",CultureInfo.InvariantCulture);
         return $"rgba({(int)rgba.X}, {(int)rgba.Y}, {(int)rgba.Z}, {alphaString})";
     }
 }

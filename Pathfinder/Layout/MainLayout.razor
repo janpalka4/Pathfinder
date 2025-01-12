@@ -9,9 +9,14 @@
     <MudAppBar Class="flex-grow-0">
         <MudText Typo="Typo.h6">Pathfinder</MudText>
         <MudSpacer/>
-        <MudSwitch T="bool"/>
+        <div class="align-center d-flex flex-column justify-center">
+            <div style="width: 100px; height: 20px;">
+                <MudBadge Color="@Color.Error" Content="@("Preview version")" />
+            </div>
+            <MudText Typo="Typo.caption">This is the preview version. The app contains bugs!</MudText>
+        </div>
         <MudSpacer/>
-        <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Edge="Edge.End" />
+        <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Edge="Edge.End" Href="https://github.com/janpalka4/Pathfinder" />
     </MudAppBar>
     <MudMainContent Class="flex-grow-1">
         @Body
