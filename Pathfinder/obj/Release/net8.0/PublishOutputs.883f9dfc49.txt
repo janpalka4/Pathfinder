@@ -1,6 +1,0 @@
-C:\Users\Johny\source\repos\Pathfinder\Pathfinder\obj\Release\net8.0\browser-wasm\PubTmp\Out\GithubPages\web.config
-C:\Users\Johny\source\repos\Pathfinder\Pathfinder\obj\Release\net8.0\browser-wasm\PubTmp\Out\GithubPages\emcc-props.json
-C:\Users\Johny\source\repos\Pathfinder\Pathfinder\obj\Release\net8.0\browser-wasm\PubTmp\Out\GithubPages\Pathfinder.staticwebassets.endpoints.json
-C:\Users\Johny\source\repos\Pathfinder\Pathfinder\obj\Release\net8.0\browser-wasm\PubTmp\Out\GithubPages\wwwroot\_framework\blazor.boot.json
-C:\Users\Johny\source\repos\Pathfinder\Pathfinder\obj\Release\net8.0\browser-wasm\PubTmp\Out\emcc-props.json
-C:\Users\Johny\source\repos\Pathfinder\Pathfinder\obj\Release\net8.0\browser-wasm\PubTmp\Out\web.config
