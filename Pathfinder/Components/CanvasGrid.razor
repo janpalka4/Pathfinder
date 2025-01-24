@@ -11,7 +11,7 @@
 @inject MeasurementService MeasurementService
 @inject IJSRuntime JSRuntime
 
-<div @ref="div" style="position: relative; width: 100%; height: 100%;" @onmousemove="@OnMouseMove" @onmousedown="@(() => mouseDown = true)" @onmouseup="@(() => mouseDown = false)" @onmouseleave="@(() => mouseDown = false)">
+<div @ref="div" style="position: relative; width: 100%; height: 100%;" @onmousemove="@OnMouseMove" @onmousedown="@(async (e) => {mouseDown = true; await OnMouseMove(e);})" @onmouseup="@(() => mouseDown = false)" @onmouseleave="@(() => mouseDown = false)">
     <BECanvas Width="@((int)maxSize.X * 32)" Height="@((int)maxSize.Y * 32)" @ref="_canvasReference"></BECanvas>
 </div>
 
@@ -35,6 +35,7 @@
     private Vector2? HoveredTile;
     private bool mouseDown = false;
     private bool resized = false;
+    private int playingAnimations = 0;
     private Vector2 maxSize = Vector2.Zero;
 
     private CancellationTokenSource animationCancellationToken = new CancellationTokenSource();
@@ -117,16 +118,16 @@
         // await _context.FillRectAsync(0, 0, clientRect.Width, clientRect.Height);
 
         for (int x = 0; x < clientRect.Width; x += 32)
-            {
+        {
             for (int y = 0; y < clientRect.Height; y += 32)
-                {
+            {
                 Vector2 position = new Vector2(x, y) / 32f;
                 GridTile tile = Tiles?.GetValueOrDefault(position) ?? new GridTile(position);
 
                 tile.OnTileChanged += async (s, e) => await OnRedrawTile(e, e);
 
                 Tiles?.Add(position, tile);
-        }
+            }
         }
     }
 
@@ -311,6 +312,10 @@
     private async Task RedrawTile(GridTile tile)
     {
         //Console.WriteLine($"Redrawing Tile: {tile}");
+        if(tile.Type == TileType.PATH && playingAnimations > 0){
+            await StopAllAnimations();
+        }
+
         await ClearTile(tile.Position);
 
         Vector4 c = tile.GetColor();
@@ -349,6 +354,8 @@
 
     private async Task PlayTileAnimation(TileAnimation animation, Vector2 tile)
     {
+        playingAnimations++;
+
         TileKeyframe initialKeyframe = animation.Keyframes[0];
         await DrawCustomTile(initialKeyframe.Color, tile, initialKeyframe.Size, initialKeyframe.BorderRadius);
 
@@ -377,6 +384,12 @@
                 await Task.Delay(10);
             }
         }
+
+        TileKeyframe lastFrame = animation.Keyframes[^1];
+
+        await DrawCustomTile(lastFrame.Color, tile, lastFrame.Size, lastFrame.BorderRadius);
+
+        playingAnimations--;
     }
 
     private async Task DrawCustomTile(Vector4 color, Vector2 position, Vector2 size, int borderRadius)
