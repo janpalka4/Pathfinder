@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "Pathfinder",
   "resources": {
-    "hash": "sha256-y6aD/AWqYpSVb6ImlMjagy63egtGaja/YsDHaFujLKE=",
+    "hash": "sha256-TsmooH8ipldJePS3bpWwXTWi9YJ3W1SJbNRrAA9t2TA=",
     "jsModuleNative": {
       "dotnet.native.js": "sha256-p7ClT8o5uqssszvzfZUGhBlLOOkeUrpskkbm2FHab3g="
     },
@@ -38,7 +38,7 @@
       "Microsoft.JSInterop.WebAssembly.wasm": "sha256-Jwrlf0VPydOWncfsAvk569TQrosh6ro1Xkc8HzvG2nQ=",
       "MudBlazor.wasm": "sha256-IAv3f5zAPaRhl1t+8C6L2g2Ju270Btg8uZ2WyP+ApzM=",
       "netstandard.wasm": "sha256-ieBaxaIk7anpzHy39nPKfHT1MlOkoFyeQ0no0xZP470=",
-      "Pathfinder.wasm": "sha256-RrvfyOHTe62Igt1rIU1cUHiBAs71csJ0OXDz8tg0ldo=",
+      "Pathfinder.wasm": "sha256-/KpElStuepyeC6VpAA1Z8+TIroKMVrBpJ9pwSDgY8vI=",
       "System.Collections.Concurrent.wasm": "sha256-fp8kDKyLrAY14HTA6Lf0CUvJhBE3xpYm+BcrsckoNKw=",
       "System.Collections.Immutable.wasm": "sha256-VEkaJEeh0jLUXxK6+l8qsGh6kKVSwm4GhMVblmAJzZ0=",
       "System.Collections.wasm": "sha256-VUT3GxmQyHb1wm2YmpU1oRABqRiyTApoI74AdTk/MtQ=",
