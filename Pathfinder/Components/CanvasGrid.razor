@@ -38,6 +38,10 @@
     private int playingAnimations = 0;
     private Vector2 maxSize = Vector2.Zero;
 
+    private Stack<Task> drawStack = new Stack<Task>();
+    private bool isDrawing = false;
+    private int drawCount = 0;
+
     private CancellationTokenSource animationCancellationToken = new CancellationTokenSource();
 
     protected BECanvasComponent _canvasReference;
@@ -223,9 +227,11 @@
         if (HoveredTile.HasValue)
         {
             // Console.WriteLine("Fill");  
-            await this._context.SetFillStyleAsync(GetColor(GridGray));
+            drawStack.Push(this._context.SetFillStyleAsync(GetColor(GridGray)));
             // Console.WriteLine("Rect");
-            await this._context.FillRectAsync(HoveredTile.Value.X * 32, HoveredTile.Value.Y * 32, 32, 32);
+            drawStack.Push(this._context.FillRectAsync(HoveredTile.Value.X * 32, HoveredTile.Value.Y * 32, 32, 32));
+
+            await UpdateGridState();
         }
         //Console.WriteLine("Done Drawing Hovered Tile");
     }
@@ -253,28 +259,30 @@
             float a = (0.5f - f);
             if (c.W == 0)
             {
-                await this._context.ClearRectAsync(tile.X * 32, tile.Y * 32, 32, 32);
+                drawStack.Push( this._context.ClearRectAsync(tile.X * 32, tile.Y * 32, 32, 32));
             }
             else
             {
-                await this._context.SetFillStyleAsync(GetColor(c));
-                await this._context.FillRectAsync(tile.X * 32, tile.Y * 32, 32, 32);
+                drawStack.Push( this._context.SetFillStyleAsync(GetColor(c)));
+                drawStack.Push(this._context.FillRectAsync(tile.X * 32, tile.Y * 32, 32, 32));
             }
 
-            await this._context.SetFillStyleAsync(GetColor(gridRGB, a));
-            await this._context.FillRectAsync(tile.X * 32, tile.Y * 32, 32, 32);
+            drawStack.Push( this._context.SetFillStyleAsync(GetColor(gridRGB, a)));
+            drawStack.Push(this._context.FillRectAsync(tile.X * 32, tile.Y * 32, 32, 32));
 
-            await this._context.SetStrokeStyleAsync(GetColor(GridGray));
-            await this._context.StrokeRectAsync(tile.X * 32, tile.Y * 32, 32, 32);
+            drawStack.Push(this._context.SetStrokeStyleAsync(GetColor(GridGray)));
+            drawStack.Push(this._context.StrokeRectAsync(tile.X * 32, tile.Y * 32, 32, 32));
+
+            await UpdateGridState();
 
             await Task.Delay(10);
         }
 
         c = Tiles[tile].GetColor();
 
+
         //Clear the tile
         await RedrawTile(Tiles[tile]);
-
     }
 
     private async Task HandleHoverHighlight(MouseEventArgs e)
@@ -286,6 +294,8 @@
             await DrawEmptyTile(previous.Value);
 
         await DrawHoveredTile();
+
+        //await UpdateGridState();
     }
 
     private void HandleTool()
@@ -313,16 +323,16 @@
     {
         //Console.WriteLine($"Redrawing Tile: {tile}");
         if(tile.Type == TileType.PATH && playingAnimations > 0){
-            await StopAllAnimations();
+            drawStack.Push(StopAllAnimations());
         }
 
-        await ClearTile(tile.Position);
+        drawStack.Push(ClearTile(tile.Position));
 
         Vector4 c = tile.GetColor();
 
         if (c.W == 0)
         {
-            await this._context.ClearRectAsync(tile.Position.X * 32, tile.Position.Y * 32, 32, 32);
+            drawStack.Push(this._context.ClearRectAsync(tile.Position.X * 32, tile.Position.Y * 32, 32, 32));
         }
         else
         {
@@ -333,23 +343,27 @@
             }
             else
             {
-                await this._context.SetFillStyleAsync(GetColor(new Vector3(c.X, c.Y, c.Z), c.W));
-                await this._context.FillRectAsync(tile.Position.X * 32, tile.Position.Y * 32, 32, 32);
+                drawStack.Push(this._context.SetFillStyleAsync(GetColor(new Vector3(c.X, c.Y, c.Z), c.W)));
+                drawStack.Push(this._context.FillRectAsync(tile.Position.X * 32, tile.Position.Y * 32, 32, 32));
             }
         }
 
         // Console.WriteLine($"stroke");
-        await this._context.SetStrokeStyleAsync(GetColor(GridGray));
+        drawStack.Push(this._context.SetStrokeStyleAsync(GetColor(GridGray)));
         // Console.WriteLine($"rect");
-        await this._context.StrokeRectAsync(tile.Position.X * 32, tile.Position.Y * 32, 32, 32);
+        drawStack.Push(this._context.StrokeRectAsync(tile.Position.X * 32, tile.Position.Y * 32, 32, 32));
+
+        await UpdateGridState();
     }
 
     private async Task ClearTile(Vector2 tile)
     {
-        await this._context.ClearRectAsync(tile.X * 32 - 1, tile.Y * 32 - 1, 32 + 2, 32 + 2);
+        drawStack.Push(this._context.ClearRectAsync(tile.X * 32 - 1, tile.Y * 32 - 1, 32 + 2, 32 + 2));
 
-        await this._context.SetStrokeStyleAsync(GetColor(GridGray));
-        await this._context.StrokeRectAsync(tile.X * 32, tile.Y * 32, 32, 32);
+        drawStack.Push(this._context.SetStrokeStyleAsync(GetColor(GridGray)));
+        drawStack.Push(this._context.StrokeRectAsync(tile.X * 32, tile.Y * 32, 32, 32));
+
+        await UpdateGridState();
     }
 
     private async Task PlayTileAnimation(TileAnimation animation, Vector2 tile)
@@ -357,7 +371,7 @@
         playingAnimations++;
 
         TileKeyframe initialKeyframe = animation.Keyframes[0];
-        await DrawCustomTile(initialKeyframe.Color, tile, initialKeyframe.Size, initialKeyframe.BorderRadius);
+        drawStack.Push(DrawCustomTile(initialKeyframe.Color, tile, initialKeyframe.Size, initialKeyframe.BorderRadius));
 
         for (int i = 1; i < animation.Keyframes.Length; i++)
         {
@@ -379,15 +393,18 @@
                 Vector2 size = Vector2.Lerp(previousKeyframe.Size, keyframe.Size, ms / (float)previousKeyframe.DurationMs);
                 int borderRadius = 0;
 
-                await DrawCustomTile(color, tile, size, borderRadius);
+                drawStack.Push(DrawCustomTile(color, tile, size, borderRadius));
 
                 await Task.Delay(10);
+
+                await UpdateGridState();
             }
         }
 
         TileKeyframe lastFrame = animation.Keyframes[^1];
 
-        await DrawCustomTile(lastFrame.Color, tile, lastFrame.Size, lastFrame.BorderRadius);
+        drawStack.Push(DrawCustomTile(lastFrame.Color, tile, lastFrame.Size, lastFrame.BorderRadius));
+        await UpdateGridState();
 
         playingAnimations--;
     }
@@ -396,8 +413,10 @@
     {
         Vector2 from = position * 32f + (new Vector2(32, 32) - (new Vector2(size.X, size.Y) * 32f)) / 2f;
 
-        await this._context.SetFillStyleAsync(GetColor(color));
-        await this._context.FillRectAsync(from.X, from.Y, size.X * 32, size.Y * 32);
+        drawStack.Push(this._context.SetFillStyleAsync(GetColor(color)));
+        drawStack.Push(this._context.FillRectAsync(from.X, from.Y, size.X * 32, size.Y * 32));
+
+        await UpdateGridState();
     }
 
     private string GetColor(Vector3 rgb, float a = 1)
@@ -409,5 +428,28 @@
     {
         string alphaString = rgba.W.ToString("0.00",CultureInfo.InvariantCulture);
         return $"rgba({(int)rgba.X}, {(int)rgba.Y}, {(int)rgba.Z}, {alphaString})";
+    }
+
+    private async Task UpdateGridState(){
+        //Console.WriteLine("Update Grid State");
+
+        if (drawStack.Count == 0 || drawCount > 1)
+            return;
+
+        drawCount++;
+
+        while(isDrawing)
+            await Task.Delay(5);
+
+        //Console.WriteLine("Drawing Stack");
+        isDrawing = true;
+        while (drawStack.Count > 0)
+        {
+            await drawStack.Pop();
+        }
+
+        isDrawing = false;
+        drawCount--;
+        //Console.WriteLine("Done Drawing Stack");
     }
 }

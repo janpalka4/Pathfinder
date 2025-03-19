@@ -20,12 +20,12 @@ namespace Pathfinder.Logic.Algorithms.MazeGen
             }
 
             var edges = new List<Edge>();
-            var sets = new DisjointSet((width / 2) * (height / 2));
+            var sets = new DisjointSet((width / 2) * (height / 2 - 1));
 
             // Create list of all edges
-            for (int y = 1; y < height; y += 2)
+            for (int y = 1; y < height-2; y += 2)
             {
-                for (int x = 1; x < width; x += 2)
+                for (int x = 1; x < width - 1; x += 2)
                 {
                     int index = (y / 2) * (width / 2) + (x / 2);
 
@@ -36,7 +36,7 @@ namespace Pathfinder.Logic.Algorithms.MazeGen
                     {
                         edges.Add(new Edge(x, y, x + 2, y));
                     }
-                    if (y < height - 2)
+                    if (y < height - 3)
                     {
                         edges.Add(new Edge(x, y, x, y + 2));
                     }
